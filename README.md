@@ -1,0 +1,5 @@
+- inputs to the algorithm
+- various files needed to run the algorithm
+- mechanism formatting
+- settings
+- conditions
