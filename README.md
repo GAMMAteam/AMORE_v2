@@ -122,6 +122,7 @@ default = True
 
 
 Algorithm Output: In addition to the mechanism, the algorithm will give several outputs relevant to the reduction. The output is formatted as a dictionary with the following keys and values:
+
 'Reduced Mechanism': The reduced mechanism in the amore Mechanism class format. This format needs to be converted to the desired format externally from the mechanism. We have built in conversions for isoprene to F0AM format and camphene/gecko mechanisms to GECKO-A format. 
 
 'Remaining Species': A list of remaining species.
