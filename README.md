@@ -1,9 +1,7 @@
-- inputs to the algorithm
-- various files needed to run the algorithm
-- mechanism formatting
-- settings
-- conditions
+The algorithm and necessary functions are contained within the AMORE_v2.py file. Sample jupyter notebooks for isoprene (AMORE_ISOP_TESTING_1_29_25.ipynb) and camphene (AMORE_CAMPHENE_workbook_clean.ipynb) are provided. The algorithm is imported into these workbooks using:
+import AMORE_v2 as am
 
+The main reduction function is called using am.AMORE_mechanism_reduction(mechanism, background_species, conditions, settings)
 
 The algorithm requires that the full mechanism be in the correct format. This format is a custom python based format which follows the following definition:
 class Mechanism:
@@ -25,20 +23,33 @@ A mechanism is an object class composed of a list of species and list of reactio
 A reaction is an object class composed of:
 - .reactants: a list of the reactants
 - .prod_dict: a dictionary of the products with keys as the species and values as the stoichiometric coefficients
-- .rate_law: a string of the rate law function
-- .eval_rate_law: the evaluated rate law (optional)
-- .rate: this is the relative rate and is as 1.
-- .rate_string: this is left blank
-- .multiplier: this is used in the algorithm but starts at one as the default
+- .rate_law: a string of the rate law function or otherwise 'null' if using eval_rate_law
+- .eval_rate_law: a list of the evaluated rate laws for each condition, eg [eval1, eval2, eval3...]
+- .rate: set this to 1.
+- .rate_string: this is used for GECKO-A postprocessing to keep the format of the GECKO-A mechanism rate law by inputting it as a string
+- .multiplier: this is used in the algorithm but starts at one as the default, can be left blank
+
+Note: The AMORE 2.0 algorithm requires all rate constants to be evaluated at each condition. This can be done within the algorithm assuming that all 'rate_law' strings for each reaction in the mechanism can be evaluated, or they can be evaluated outside of the algorithm and input directly as 'eval_rate_law', the number of evaluated rate laws for each reaction must match the number of input conditions. If using 'eval_rate_law', input 'null' for the rate_law. Otherwise the AMORE algorithm will try to evaluate the rate_law. If not using eval_rate_laws, can put anything as a placeholder as they will be ignored as long as 'rate_law' is not 'null'. 
+
+
+The user should create reactions using the following command:
+
+am.Reaction(reactants, prod_dict, rate_law, eval_rate_law, 1, rate_string)
+
+With a list of reactions, the user can create a mechanism using the following command:
+
+am.Mechanism(species_list, Reactions)
+
+
 
 Regardless of the oiginal format of the full mechanism, it must be converted to this format. 
 The notebooks for isoprene and camphene demonstrate this for two different initial mechanism file types.
 
 
-Inputs to the algorithm:
+Inputs to the algorithm (in this order):
 - the mechanism in the above format
-- conditions: a list of dictionaries (one dictionary for each condition) containing meteorological parameters and species concentrations needed to calculate the relative rates of each reaction
 - background_species: a list of species that will default as secondary reactants when calculating relative rates, we usually use HOx, NOx, Ox species, and any other inorganic reactants or small organic radicals
+- conditions: a list of dictionaries (one dictionary for each condition) containing meteorological parameters and species concentrations needed to calculate the relative rates of each reaction
 - settings: a mix of optional and required settings for the reduction to proceed, listed below
 
 Condition Formatting: 
@@ -51,11 +62,9 @@ Settings is formatted as a dictionary with keys as the setting and values as the
 
 Required settings:
 'roots': a list of root species for the mechanism. Eg: ['ISOP'], or for a mechanism with multiple roots: ['APINENE','CMPHEN']
+
 'Mechanism Size': the desired mechanism size in terms of number of species. This will count all species in the species list including background species and priority species. 
 For example, if you have a mechanism with 400 species, and only 350 of them are eligible to be removed, setting the mechanism size to 51 will result in a mechanism with only one species remaining among those that were eligible to be removed.
-
-
-'No Counts',  'Print Progress']
 
 Optional settings:
 'Protected': a list of species that should not be removed from the mechanism, eg: ['HCHO','MGLY','PAN']
@@ -110,4 +119,38 @@ default = set()
 
 'Print Progress': True or False. If True, prints the stage that the algorithm is on during the reduction. Useful for identifying slow steps or errors. 
 default = True
+
+
+Algorithm Output: In addition to the mechanism, the algorithm will give several outputs relevant to the reduction. The output is formatted as a dictionary with the following keys and values:
+'Reduced Mechanism': The reduced mechanism in the amore Mechanism class format. This format needs to be converted to the desired format externally from the mechanism. We have built in conversions for isoprene to F0AM format and camphene/gecko mechanisms to GECKO-A format. 
+
+'Remaining Species': A list of remaining species.
+
+'Removed Species': A list of removed species.
+
+'Removal Order': The order in which species were set to be removed (includes the order for species that weren't removed as well). 
+
+'Full graphs': A list of the full mechanism graph for each condition. 
+
+'Full Yields': A list of the yields of each species from the full mechanism for each condition.
+
+'Average full yield': The yield of each species from the full mechanism averaged across every condition. 
+
+'Reduced Graphs': A list of the reduced graph for each condition.
+
+'Reduced Yields': A list of the yields of each species from the reduced mechanism for each condition. 
+
+'Tiers': The tiers in which each species was removed. Ordered list from first removed to last. This is distinct from the order. The order decides which species will be removed given the number of desired species in the mechanism. The tiers determine the actual order in which those species were removed, which is optimized to reduce the number of new edges created during the reduction process. 
+
+'Strongly Connected Components': A list of strongly connected components in the full mechanism. 
+
+'Reduced Strongly Connected Components': A list of strongly connected components in the reduced mechanism. 
+
+'Groups': The species that were grouped together in the mechanism. 
+
+'Species Dictionary': dictionary mapping each species to its index (indices are used within the algorithm for efficiency). 
+
+'Species': A list of the species in the mechanism including newly created category species. 
+
+
 
